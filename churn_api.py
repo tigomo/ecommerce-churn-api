@@ -5,11 +5,8 @@ from typing import List, Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, ValidationError
 import joblib, pandas as pd
-import nest_asyncio
 import uvicorn
 
-# Pour exécuter FastAPI depuis Jupyter Notebook
-nest_asyncio.apply()
 
 # Charger le pipeline
 MODEL_PATH = "churn_xgb_model.joblib"
@@ -80,5 +77,3 @@ if __name__ == "__main__":
     probs = pipeline.predict_proba(df_test)[:, 1]
     print("Exemple batch - probabilités :", probs.tolist())
 
-# Lancer le serveur API dans ce notebook
-uvicorn.run(app, host="0.0.0.0", port=8006)
