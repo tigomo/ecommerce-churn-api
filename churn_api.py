@@ -36,6 +36,9 @@ class CustomerFeatures(BaseModel):
 app = FastAPI(title="Customer Churn Prediction API (Batch)",
               description="API REST avec validation Pydantic, endpoints single & batch.",
               version="3.0.0" )
+@app.get("/")
+def root():
+    return {"message": "Bienvenue sur l'API de prédiction du churn !"}
 
 @app.get("/health")
 def health() -> dict:
