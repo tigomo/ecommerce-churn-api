@@ -1,18 +1,22 @@
-
-# 🚀 Extensions API FastAPI : batch prediction + exemples de tests
-
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Depends, Form
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, ValidationError
 import joblib, pandas as pd
-import uvicorn
-
 
 # Charger le pipeline
 MODEL_PATH = "churn_xgb_model.joblib"
 pipeline = joblib.load(MODEL_PATH)
 
-# Schéma Pydantic pour un client
+# Clé API de sécurité simple
+API_KEY = "supersecretkey"
+
+# Fonction de vérification de la clé API
+def verify_api_key(request: Request):
+    if request.headers.get("x-api-key") != API_KEY:
+        raise HTTPException(status_code=401, detail="Clé API invalide")
+
+# Pydantic Model
 class CustomerFeatures(BaseModel):
     Tenure: Optional[float] = Field(..., example=5)
     PreferredLoginDevice: str = Field(..., example="Phone")
@@ -33,19 +37,26 @@ class CustomerFeatures(BaseModel):
     DaySinceLastOrder: Optional[float] = Field(..., example=7)
     CashbackAmount: Optional[float] = Field(..., example=120.0)
 
+# FastAPI instance
 app = FastAPI(title="Customer Churn Prediction API (Batch)",
               description="API REST avec validation Pydantic, endpoints single & batch.",
-              version="3.0.0" )
-@app.get("/")
-def root():
-    return {"message": "Bienvenue sur l'API de prédiction du churn !"}
+              version="3.0.0")
 
+# Page d'accueil HTML
+@app.get("/", response_class=HTMLResponse)
+def root():
+    return """
+    <h2>Bienvenue sur l'API de Prédiction de Churn</h2>
+    <p>Utilisez <code>/form</code> pour un test manuel ou <code>/predict</code> pour une requête API.</p>
+    """
+
+# Vérification de santé
 @app.get("/health")
 def health() -> dict:
-    """Vérifie que l'API fonctionne"""
     return {"status": "ok"}
 
-@app.post("/predict")
+# Prédiction single (avec sécurité API)
+@app.post("/predict", dependencies=[Depends(verify_api_key)])
 def predict(payload: CustomerFeatures):
     try:
         df = pd.DataFrame([payload.dict()])
@@ -56,9 +67,9 @@ def predict(payload: CustomerFeatures):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/predict_batch")
+# Prédiction batch (avec sécurité API)
+@app.post("/predict_batch", dependencies=[Depends(verify_api_key)])
 def predict_batch(payloads: List[CustomerFeatures]):
-    """Prend une liste de clients et renvoie une liste de probabilités"""
     try:
         df = pd.DataFrame([p.dict() for p in payloads])
         probs = pipeline.predict_proba(df)[:, 1].tolist()
@@ -68,15 +79,79 @@ def predict_batch(payloads: List[CustomerFeatures]):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# ---------- Exemple de test local (hors API) ----------
-if __name__ == "__main__":
-    # Simuler 3 clients pour test rapide
-    samples = [
-        CustomerFeatures(Tenure=6, PreferredLoginDevice="Phone", CityTier=2, WarehouseToHome=12, PreferredPaymentMode="UPI", Gender="Female", HourSpendOnApp=4, NumberOfDeviceRegistered=3, PreferedOrderCat="Laptop & Accessory", SatisfactionScore=4, MaritalStatus="Single", NumberOfAddress=2, Complain=0, OrderAmountHikeFromlastYear=12.5, CouponUsed=1.0, OrderCount=3.0, DaySinceLastOrder=5.0, CashbackAmount=125.50),
-        CustomerFeatures(Tenure=1, PreferredLoginDevice="Mobile Phone", CityTier=3, WarehouseToHome=30, PreferredPaymentMode="Debit Card", Gender="Male", HourSpendOnApp=2, NumberOfDeviceRegistered=4, PreferedOrderCat="Mobile", SatisfactionScore=2, MaritalStatus="Married", NumberOfAddress=3, Complain=1, OrderAmountHikeFromlastYear=5, CouponUsed=0, OrderCount=1, DaySinceLastOrder=20, CashbackAmount=80),
-        CustomerFeatures(Tenure=10, PreferredLoginDevice="Computer", CityTier=1, WarehouseToHome=6, PreferredPaymentMode="Credit Card", Gender="Male", HourSpendOnApp=5, NumberOfDeviceRegistered=2, PreferedOrderCat="Books", SatisfactionScore=5, MaritalStatus="Single", NumberOfAddress=1, Complain=0, OrderAmountHikeFromlastYear=15, CouponUsed=2, OrderCount=5, DaySinceLastOrder=2, CashbackAmount=200)
-    ]
-    df_test = pd.DataFrame([s.dict() for s in samples])
-    probs = pipeline.predict_proba(df_test)[:, 1]
-    print("Exemple batch - probabilités :", probs.tolist())
+# Formulaire HTML
+@app.get("/form", response_class=HTMLResponse)
+def show_form():
+    return """
+    <h2>Formulaire de Prédiction du Churn</h2>
+    <form action="/form_predict" method="post">
+        <label>Tenure:</label><input type="number" step="any" name="Tenure"><br>
+        <label>PreferredLoginDevice:</label><input type="text" name="PreferredLoginDevice"><br>
+        <label>CityTier:</label><input type="number" name="CityTier"><br>
+        <label>WarehouseToHome:</label><input type="number" step="any" name="WarehouseToHome"><br>
+        <label>PreferredPaymentMode:</label><input type="text" name="PreferredPaymentMode"><br>
+        <label>Gender:</label><input type="text" name="Gender"><br>
+        <label>HourSpendOnApp:</label><input type="number" step="any" name="HourSpendOnApp"><br>
+        <label>NumberOfDeviceRegistered:</label><input type="number" name="NumberOfDeviceRegistered"><br>
+        <label>PreferedOrderCat:</label><input type="text" name="PreferedOrderCat"><br>
+        <label>SatisfactionScore:</label><input type="number" name="SatisfactionScore"><br>
+        <label>MaritalStatus:</label><input type="text" name="MaritalStatus"><br>
+        <label>NumberOfAddress:</label><input type="number" name="NumberOfAddress"><br>
+        <label>Complain:</label><input type="number" name="Complain"><br>
+        <label>OrderAmountHikeFromlastYear:</label><input type="number" step="any" name="OrderAmountHikeFromlastYear"><br>
+        <label>CouponUsed:</label><input type="number" step="any" name="CouponUsed"><br>
+        <label>OrderCount:</label><input type="number" step="any" name="OrderCount"><br>
+        <label>DaySinceLastOrder:</label><input type="number" step="any" name="DaySinceLastOrder"><br>
+        <label>CashbackAmount:</label><input type="number" step="any" name="CashbackAmount"><br>
+        <input type="submit" value="Prédire">
+    </form>
+    """
 
+# Traitement du formulaire
+@app.post("/form_predict", response_class=HTMLResponse)
+def form_predict(
+    Tenure: float = Form(...),
+    PreferredLoginDevice: str = Form(...),
+    CityTier: int = Form(...),
+    WarehouseToHome: float = Form(...),
+    PreferredPaymentMode: str = Form(...),
+    Gender: str = Form(...),
+    HourSpendOnApp: float = Form(...),
+    NumberOfDeviceRegistered: int = Form(...),
+    PreferedOrderCat: str = Form(...),
+    SatisfactionScore: int = Form(...),
+    MaritalStatus: str = Form(...),
+    NumberOfAddress: int = Form(...),
+    Complain: int = Form(...),
+    OrderAmountHikeFromlastYear: float = Form(...),
+    CouponUsed: float = Form(...),
+    OrderCount: float = Form(...),
+    DaySinceLastOrder: float = Form(...),
+    CashbackAmount: float = Form(...),
+):
+    try:
+        data = {
+            "Tenure": Tenure,
+            "PreferredLoginDevice": PreferredLoginDevice,
+            "CityTier": CityTier,
+            "WarehouseToHome": WarehouseToHome,
+            "PreferredPaymentMode": PreferredPaymentMode,
+            "Gender": Gender,
+            "HourSpendOnApp": HourSpendOnApp,
+            "NumberOfDeviceRegistered": NumberOfDeviceRegistered,
+            "PreferedOrderCat": PreferedOrderCat,
+            "SatisfactionScore": SatisfactionScore,
+            "MaritalStatus": MaritalStatus,
+            "NumberOfAddress": NumberOfAddress,
+            "Complain": Complain,
+            "OrderAmountHikeFromlastYear": OrderAmountHikeFromlastYear,
+            "CouponUsed": CouponUsed,
+            "OrderCount": OrderCount,
+            "DaySinceLastOrder": DaySinceLastOrder,
+            "CashbackAmount": CashbackAmount,
+        }
+        df = pd.DataFrame([data])
+        proba = pipeline.predict_proba(df)[0, 1]
+        return f"<h3>Probabilité de churn : {round(proba*100, 2)}%</h3><a href='/form'>⟵ Retour</a>"
+    except Exception as e:
+        return f"<p>Erreur : {str(e)}</p>"
