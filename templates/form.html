@@ -1,1 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Formulaire de prédiction du churn</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            background: #fff;
+            padding: 20px;
+            max-width: 700px;
+            margin: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button {
+            margin-top: 20px;
+            background: #007BFF;
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            width: 100%;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Prédiction du Churn Client</h1>
+    <form action="/predict" method="post">
+        <label for="Tenure">Ancienneté (Tenure)</label>
+        <input type="number" name="Tenure" step="any" required>
+
+        <label for="PreferredLoginDevice">Appareil préféré</label>
+        <select name="PreferredLoginDevice" required>
+            <option value="Phone">Phone</option>
+            <option value="Mobile Phone">Mobile Phone</option>
+            <option value="Computer">Computer</option>
+        </select>
+
+        <label for="CityTier">Niveau de la ville</label>
+        <input type="number" name="CityTier" min="0" max="5" required>
+
+        <label for="WarehouseToHome">Distance entre entrepôt et domicile</label>
+        <input type="number" name="WarehouseToHome" step="any" required>
+
+        <label for="PreferredPaymentMode">Mode de paiement préféré</label>
+        <select name="PreferredPaymentMode" required>
+            <option value="UPI">UPI</option>
+            <option value="Debit Card">Debit Card</option>
+            <option value="Credit Card">Credit Card</option>
+        </select>
+
+        <label for="Gender">Genre</label>
+        <select name="Gender" required>
+            <option value="Male">Homme</option>
+            <option value="Female">Femme</option>
+        </select>
+
+        <label for="HourSpendOnApp">Heures passées sur l'appli</label>
+        <input type="number" name="HourSpendOnApp" step="any" required>
+
+        <label for="NumberOfDeviceRegistered">Nombre d'appareils enregistrés</label>
+        <input type="number" name="NumberOfDeviceRegistered" required>
+
+        <label for="PreferedOrderCat">Catégorie d'achat préférée</label>
+        <select name="PreferedOrderCat" required>
+            <option value="Laptop & Accessory">Laptop & Accessory</option>
+            <option value="Mobile">Mobile</option>
+            <option value="Books">Books</option>
+        </select>
+
+        <label for="SatisfactionScore">Score de satisfaction</label>
+        <input type="number" name="SatisfactionScore" min="1" max="5" required>
+
+        <label for="MaritalStatus">Statut marital</label>
+        <select name="MaritalStatus" required>
+            <option value="Single">Célibataire</option>
+            <option value="Married">Marié(e)</option>
+        </select>
+
+        <label for="NumberOfAddress">Nombre d'adresses</label>
+        <input type="number" name="NumberOfAddress" required>
+
+        <label for="Complain">Réclamation (0 = Non, 1 = Oui)</label>
+        <input type="number" name="Complain" min="0" max="1" required>
+
+        <label for="OrderAmountHikeFromlastYear">Augmentation du montant de commande</label>
+        <input type="number" name="OrderAmountHikeFromlastYear" step="any" required>
+
+        <label for="CouponUsed">Coupons utilisés</label>
+        <input type="number" name="CouponUsed" step="any" required>
+
+        <label for="OrderCount">Nombre de commandes</label>
+        <input type="number" name="OrderCount" step="any" required>
+
+        <label for="DaySinceLastOrder">Jours depuis la dernière commande</label>
+        <input type="number" name="DaySinceLastOrder" step="any" required>
+
+        <label for="CashbackAmount">Montant de cashback</label>
+        <input type="number" name="CashbackAmount" step="any" required>
+
+        <button type="submit">Prédire le churn</button>
+    </form>
+</body>
+</html>
 
