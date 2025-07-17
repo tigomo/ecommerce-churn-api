@@ -4,3 +4,5 @@ joblib
 pandas
 scikit-learn
 xgboost
+nest_asyncio
+python-multipart
