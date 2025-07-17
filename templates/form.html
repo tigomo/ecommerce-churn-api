@@ -1,131 +1,74 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Formulaire de prédiction du churn</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            padding: 30px;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        form {
-            background: #fff;
-            padding: 20px;
-            max-width: 700px;
-            margin: auto;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            border-radius: 8px;
-        }
-        label {
-            display: block;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-        input, select {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        }
-        button {
-            margin-top: 20px;
-            background: #007BFF;
-            color: #fff;
-            border: none;
-            padding: 12px;
-            border-radius: 4px;
-            width: 100%;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-    </style>
+    <title>Prédiction de Churn Client</title>
 </head>
 <body>
-    <h1>Prédiction du Churn Client</h1>
+    <h2>Formulaire de Prédiction du Churn</h2>
     <form action="/predict" method="post">
-        <label for="Tenure">Ancienneté (Tenure)</label>
-        <input type="number" name="Tenure" step="any" required>
+        <label>Tenure:</label><input type="number" name="Tenure" required><br><br>
 
-        <label for="PreferredLoginDevice">Appareil préféré</label>
-        <select name="PreferredLoginDevice" required>
+        <label>Preferred Login Device:</label>
+        <select name="PreferredLoginDevice">
             <option value="Phone">Phone</option>
-            <option value="Mobile Phone">Mobile Phone</option>
             <option value="Computer">Computer</option>
-        </select>
+        </select><br><br>
 
-        <label for="CityTier">Niveau de la ville</label>
-        <input type="number" name="CityTier" min="0" max="5" required>
+        <label>City Tier:</label><input type="number" name="CityTier" required><br><br>
 
-        <label for="WarehouseToHome">Distance entre entrepôt et domicile</label>
-        <input type="number" name="WarehouseToHome" step="any" required>
+        <label>Warehouse To Home (jours):</label><input type="number" name="WarehouseToHome" required><br><br>
 
-        <label for="PreferredPaymentMode">Mode de paiement préféré</label>
-        <select name="PreferredPaymentMode" required>
+        <label>Preferred Payment Mode:</label>
+        <select name="PreferredPaymentMode">
             <option value="UPI">UPI</option>
             <option value="Debit Card">Debit Card</option>
             <option value="Credit Card">Credit Card</option>
-        </select>
+            <option value="COD">COD</option>
+            <option value="Net Banking">Net Banking</option>
+        </select><br><br>
 
-        <label for="Gender">Genre</label>
-        <select name="Gender" required>
-            <option value="Male">Homme</option>
-            <option value="Female">Femme</option>
-        </select>
+        <label>Gender:</label>
+        <select name="Gender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+        </select><br><br>
 
-        <label for="HourSpendOnApp">Heures passées sur l'appli</label>
-        <input type="number" name="HourSpendOnApp" step="any" required>
+        <label>Hours Spent on App:</label><input type="number" step="0.1" name="HourSpendOnApp" required><br><br>
 
-        <label for="NumberOfDeviceRegistered">Nombre d'appareils enregistrés</label>
-        <input type="number" name="NumberOfDeviceRegistered" required>
+        <label>Number of Devices Registered:</label><input type="number" name="NumberOfDeviceRegistered" required><br><br>
 
-        <label for="PreferedOrderCat">Catégorie d'achat préférée</label>
-        <select name="PreferedOrderCat" required>
+        <label>Preferred Order Category:</label>
+        <select name="PreferedOrderCat">
             <option value="Laptop & Accessory">Laptop & Accessory</option>
-            <option value="Mobile">Mobile</option>
-            <option value="Books">Books</option>
-        </select>
+            <option value="Mobile Phone">Mobile Phone</option>
+            <option value="Fashion">Fashion</option>
+            <option value="Grocery">Grocery</option>
+        </select><br><br>
 
-        <label for="SatisfactionScore">Score de satisfaction</label>
-        <input type="number" name="SatisfactionScore" min="1" max="5" required>
+        <label>Satisfaction Score:</label><input type="number" name="SatisfactionScore" min="1" max="5" required><br><br>
 
-        <label for="MaritalStatus">Statut marital</label>
-        <select name="MaritalStatus" required>
-            <option value="Single">Célibataire</option>
-            <option value="Married">Marié(e)</option>
-        </select>
+        <label>Marital Status:</label>
+        <select name="MaritalStatus">
+            <option value="Single">Single</option>
+            <option value="Married">Married</option>
+            <option value="Divorced">Divorced</option>
+        </select><br><br>
 
-        <label for="NumberOfAddress">Nombre d'adresses</label>
-        <input type="number" name="NumberOfAddress" required>
+        <label>Number of Address:</label><input type="number" name="NumberOfAddress" required><br><br>
 
-        <label for="Complain">Réclamation (0 = Non, 1 = Oui)</label>
-        <input type="number" name="Complain" min="0" max="1" required>
+        <label>Complain (0 = Non, 1 = Oui):</label><input type="number" min="0" max="1" name="Complain" required><br><br>
 
-        <label for="OrderAmountHikeFromlastYear">Augmentation du montant de commande</label>
-        <input type="number" name="OrderAmountHikeFromlastYear" step="any" required>
+        <label>Order Amount Hike From Last Year:</label><input type="number" step="0.1" name="OrderAmountHikeFromlastYear" required><br><br>
 
-        <label for="CouponUsed">Coupons utilisés</label>
-        <input type="number" name="CouponUsed" step="any" required>
+        <label>Coupon Used:</label><input type="number" step="0.1" name="CouponUsed" required><br><br>
 
-        <label for="OrderCount">Nombre de commandes</label>
-        <input type="number" name="OrderCount" step="any" required>
+        <label>Order Count:</label><input type="number" name="OrderCount" required><br><br>
 
-        <label for="DaySinceLastOrder">Jours depuis la dernière commande</label>
-        <input type="number" name="DaySinceLastOrder" step="any" required>
+        <label>Day Since Last Order:</label><input type="number" step="0.1" name="DaySinceLastOrder" required><br><br>
 
-        <label for="CashbackAmount">Montant de cashback</label>
-        <input type="number" name="CashbackAmount" step="any" required>
+        <label>Cashback Amount:</label><input type="number" step="0.1" name="CashbackAmount" required><br><br>
 
-        <button type="submit">Prédire le churn</button>
+        <button type="submit">Prédire</button>
     </form>
 </body>
 </html>
-
