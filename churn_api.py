@@ -1,62 +1,60 @@
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, Request, Depends, Form
+from fastapi import FastAPI, HTTPException, Request, Form
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field, ValidationError
-import joblib, pandas as pd
+import joblib
+import pandas as pd
+import uvicorn
+import os
 
-# Charger le pipeline
+# Charger le modèle
 MODEL_PATH = "churn_xgb_model.joblib"
 pipeline = joblib.load(MODEL_PATH)
 
-# Clé API de sécurité simple
-API_KEY = "supersecretkey"
+# Créer l’application
+app = FastAPI(
+    title="Customer Churn Prediction API (Batch)",
+    description="API REST avec formulaire HTML, endpoints single & batch.",
+    version="3.0.0"
+)
 
-# Fonction de vérification de la clé API
-def verify_api_key(request: Request):
-    if request.headers.get("x-api-key") != API_KEY:
-        raise HTTPException(status_code=401, detail="Clé API invalide")
+# Chargement du dossier templates/
+templates = Jinja2Templates(directory="templates")
 
-# Pydantic Model
-class CustomerFeatures(BaseModel):
-    Tenure: Optional[float] = Field(..., example=5)
-    PreferredLoginDevice: str = Field(..., example="Phone")
-    CityTier: int = Field(..., ge=0, le=5, example=2)
-    WarehouseToHome: Optional[float] = Field(..., example=12)
-    PreferredPaymentMode: str = Field(..., example="UPI")
-    Gender: str = Field(..., example="Female")
-    HourSpendOnApp: Optional[float] = Field(..., example=4)
-    NumberOfDeviceRegistered: int = Field(..., example=3)
-    PreferedOrderCat: str = Field(..., example="Laptop & Accessory")
-    SatisfactionScore: int = Field(..., ge=1, le=5, example=3)
-    MaritalStatus: str = Field(..., example="Single")
-    NumberOfAddress: int = Field(..., example=4)
-    Complain: int = Field(..., ge=0, le=1, example=0)
-    OrderAmountHikeFromlastYear: Optional[float] = Field(..., example=10)
-    CouponUsed: Optional[float] = Field(..., example=1)
-    OrderCount: Optional[float] = Field(..., example=2)
-    DaySinceLastOrder: Optional[float] = Field(..., example=7)
-    CashbackAmount: Optional[float] = Field(..., example=120.0)
-
-# FastAPI instance
-app = FastAPI(title="Customer Churn Prediction API (Batch)",
-              description="API REST avec validation Pydantic, endpoints single & batch.",
-              version="3.0.0")
-
-# Page d'accueil HTML
-@app.get("/", response_class=HTMLResponse)
+# ✅ Accueil
+@app.get("/")
 def root():
-    return """
-    <h2>Bienvenue sur l'API de Prédiction de Churn</h2>
-    <p>Utilisez <code>/form</code> pour un test manuel ou <code>/predict</code> pour une requête API.</p>
-    """
+    return {"message": "Bienvenue sur l'API de prédiction du churn !"}
 
-# Vérification de santé
+# ✅ Vérification de santé
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
 
-# Prédiction single (avec sécurité API)
-@app.post("/predict", dependencies=[Depends(verify_api_key)])
+# ✅ Schéma d’entrée via Pydantic
+class CustomerFeatures(BaseModel):
+    Tenure: Optional[float]
+    PreferredLoginDevice: str
+    CityTier: int
+    WarehouseToHome: Optional[float]
+    PreferredPaymentMode: str
+    Gender: str
+    HourSpendOnApp: Optional[float]
+    NumberOfDeviceRegistered: int
+    PreferedOrderCat: str
+    SatisfactionScore: int
+    MaritalStatus: str
+    NumberOfAddress: int
+    Complain: int
+    OrderAmountHikeFromlastYear: Optional[float]
+    CouponUsed: Optional[float]
+    OrderCount: Optional[float]
+    DaySinceLastOrder: Optional[float]
+    CashbackAmount: Optional[float]
+
+# ✅ API : prédiction simple
+@app.post("/predict")
 def predict(payload: CustomerFeatures):
     try:
         df = pd.DataFrame([payload.dict()])
@@ -67,8 +65,8 @@ def predict(payload: CustomerFeatures):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# Prédiction batch (avec sécurité API)
-@app.post("/predict_batch", dependencies=[Depends(verify_api_key)])
+# ✅ API : prédiction en lot
+@app.post("/predict_batch")
 def predict_batch(payloads: List[CustomerFeatures]):
     try:
         df = pd.DataFrame([p.dict() for p in payloads])
@@ -79,37 +77,15 @@ def predict_batch(payloads: List[CustomerFeatures]):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# Formulaire HTML
+# ✅ Route formulaire HTML GET
 @app.get("/form", response_class=HTMLResponse)
-def show_form():
-    return """
-    <h2>Formulaire de Prédiction du Churn</h2>
-    <form action="/form_predict" method="post">
-        <label>Tenure:</label><input type="number" step="any" name="Tenure"><br>
-        <label>PreferredLoginDevice:</label><input type="text" name="PreferredLoginDevice"><br>
-        <label>CityTier:</label><input type="number" name="CityTier"><br>
-        <label>WarehouseToHome:</label><input type="number" step="any" name="WarehouseToHome"><br>
-        <label>PreferredPaymentMode:</label><input type="text" name="PreferredPaymentMode"><br>
-        <label>Gender:</label><input type="text" name="Gender"><br>
-        <label>HourSpendOnApp:</label><input type="number" step="any" name="HourSpendOnApp"><br>
-        <label>NumberOfDeviceRegistered:</label><input type="number" name="NumberOfDeviceRegistered"><br>
-        <label>PreferedOrderCat:</label><input type="text" name="PreferedOrderCat"><br>
-        <label>SatisfactionScore:</label><input type="number" name="SatisfactionScore"><br>
-        <label>MaritalStatus:</label><input type="text" name="MaritalStatus"><br>
-        <label>NumberOfAddress:</label><input type="number" name="NumberOfAddress"><br>
-        <label>Complain:</label><input type="number" name="Complain"><br>
-        <label>OrderAmountHikeFromlastYear:</label><input type="number" step="any" name="OrderAmountHikeFromlastYear"><br>
-        <label>CouponUsed:</label><input type="number" step="any" name="CouponUsed"><br>
-        <label>OrderCount:</label><input type="number" step="any" name="OrderCount"><br>
-        <label>DaySinceLastOrder:</label><input type="number" step="any" name="DaySinceLastOrder"><br>
-        <label>CashbackAmount:</label><input type="number" step="any" name="CashbackAmount"><br>
-        <input type="submit" value="Prédire">
-    </form>
-    """
+def form(request: Request):
+    return templates.TemplateResponse("form.html", {"request": request})
 
-# Traitement du formulaire
+# ✅ Traitement du formulaire HTML POST
 @app.post("/form_predict", response_class=HTMLResponse)
 def form_predict(
+    request: Request,
     Tenure: float = Form(...),
     PreferredLoginDevice: str = Form(...),
     CityTier: int = Form(...),
@@ -127,7 +103,7 @@ def form_predict(
     CouponUsed: float = Form(...),
     OrderCount: float = Form(...),
     DaySinceLastOrder: float = Form(...),
-    CashbackAmount: float = Form(...),
+    CashbackAmount: float = Form(...)
 ):
     try:
         data = {
@@ -148,10 +124,23 @@ def form_predict(
             "CouponUsed": CouponUsed,
             "OrderCount": OrderCount,
             "DaySinceLastOrder": DaySinceLastOrder,
-            "CashbackAmount": CashbackAmount,
+            "CashbackAmount": CashbackAmount
         }
+
         df = pd.DataFrame([data])
-        proba = pipeline.predict_proba(df)[0, 1]
-        return f"<h3>Probabilité de churn : {round(proba*100, 2)}%</h3><a href='/form'>⟵ Retour</a>"
+        prob = pipeline.predict_proba(df)[0][1]
+        result = f"{prob * 100:.2f}%"
+
+        return templates.TemplateResponse("form.html", {
+            "request": request,
+            "result": result
+        })
     except Exception as e:
-        return f"<p>Erreur : {str(e)}</p>"
+        return templates.TemplateResponse("form.html", {
+            "request": request,
+            "result": f"Erreur : {e}"
+        })
+
+# ✅ Test local
+if __name__ == "__main__":
+    uvicorn.run("churn_api:app", host="0.0.0.0", port=8000, reload=True)
