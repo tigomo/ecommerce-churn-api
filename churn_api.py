@@ -17,7 +17,7 @@ app = FastAPI(title="Customer Churn Prediction API (Batch)",
 model = joblib.load("model.pkl")  # Assurez-vous que model.pkl est bien dans le même dossier
 
 # Pour exécuter FastAPI depuis Jupyter Notebook
-nest_asyncio.apply()
+#nest_asyncio.apply()
 
 # Charger le pipeline
 MODEL_PATH = "churn_xgb_model.joblib"
