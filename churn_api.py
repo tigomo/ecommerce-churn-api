@@ -2,12 +2,47 @@ from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
 import pandas as pd
 import joblib
+import io
 import uvicorn
 
-app = FastAPI()
+app = FastAPI(title="Customer Churn Prediction API (Batch)",
+              description="API REST avec validation Pydantic, endpoints single & batch.",
+              version="3.0.0" )
 
 # Charger le modèle
 model = joblib.load("model.pkl")  # Assurez-vous que model.pkl est bien dans le même dossier
+
+# Pour exécuter FastAPI depuis Jupyter Notebook
+nest_asyncio.apply()
+
+# Charger le pipeline
+MODEL_PATH = "churn_xgb_model.joblib"
+pipeline = joblib.load(MODEL_PATH)
+
+# Schéma Pydantic pour un client
+class CustomerFeatures(BaseModel):
+    Tenure: Optional[float] = Field(..., example=5)
+    PreferredLoginDevice: str = Field(..., example="Phone")
+    CityTier: int = Field(..., ge=0, le=5, example=2)
+    WarehouseToHome: Optional[float] = Field(..., example=12)
+    PreferredPaymentMode: str = Field(..., example="UPI")
+    Gender: str = Field(..., example="Female")
+    HourSpendOnApp: Optional[float] = Field(..., example=4)
+    NumberOfDeviceRegistered: int = Field(..., example=3)
+    PreferedOrderCat: str = Field(..., example="Laptop & Accessory")
+    SatisfactionScore: int = Field(..., ge=1, le=5, example=3)
+    MaritalStatus: str = Field(..., example="Single")
+    NumberOfAddress: int = Field(..., example=4)
+    Complain: int = Field(..., ge=0, le=1, example=0)
+    OrderAmountHikeFromlastYear: Optional[float] = Field(..., example=10)
+    CouponUsed: Optional[float] = Field(..., example=1)
+    OrderCount: Optional[float] = Field(..., example=2)
+    DaySinceLastOrder: Optional[float] = Field(..., example=7)
+    CashbackAmount: Optional[float] = Field(..., example=120.0)
+
+app = FastAPI(title="Customer Churn Prediction API (Batch)",
+              description="API REST avec validation Pydantic, endpoints single & batch.",
+              version="3.0.0" )
 
 # ----- PARTIE HTML COMMENTÉE -----
 # from fastapi import Form, Request
@@ -71,6 +106,35 @@ model = joblib.load("model.pkl")  # Assurez-vous que model.pkl est bien dans le 
 #         "prediction": prediction,
 #         "probability": f"{probs[0]*100:.2f}%"
 #     })
+
+@app.get("/health")
+def health() -> dict:
+    """Vérifie que l'API fonctionne"""
+    return {"status": "ok"}
+
+@app.post("/predict")
+def predict(payload: CustomerFeatures):
+    try:
+        df = pd.DataFrame([payload.dict()])
+        proba = pipeline.predict_proba(df)[0, 1]
+        return {"churn_probability": float(proba)}
+    except ValidationError as ve:
+        raise HTTPException(status_code=422, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/predict_batch")
+def predict_batch(payloads: List[CustomerFeatures]):
+    """Prend une liste de clients et renvoie une liste de probabilités"""
+    try:
+        df = pd.DataFrame([p.dict() for p in payloads])
+        probs = pipeline.predict_proba(df)[:, 1].tolist()
+        return {"churn_probabilities": probs}
+    except ValidationError as ve:
+        raise HTTPException(status_code=422, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 # ----- NOUVELLE ROUTE POUR LES FICHIERS JSON -----
 @app.post("/predict_json_file/")
