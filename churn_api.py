@@ -73,34 +73,23 @@ model = joblib.load("model.pkl")  # Assurez-vous que model.pkl est bien dans le 
 #     })
 
 # ----- NOUVELLE ROUTE POUR LES FICHIERS JSON -----
-@app.post("/predict_json")
-async def predict_from_json(file: UploadFile = File(...)):
+@app.post("/predict_json_file/")
+async def predict_from_json_file(file: UploadFile = File(...)):
     try:
         # Lire le contenu du fichier JSON
         contents = await file.read()
-        df = pd.read_json(contents)
+        
+        # Charger le contenu dans un DataFrame
+        df = pd.read_json(io.BytesIO(contents))
 
-        # Vérification rapide
-        if df.empty:
-            return JSONResponse(status_code=400, content={"error": "Fichier JSON vide ou invalide."})
+        # Faire les prédictions
+        predictions = model.predict(df)
 
-        # Prédictions
-        probs = model.predict_proba(df)[:, 1]
-        predictions = (probs >= 0.5).astype(int)
-
-        # Créer une réponse lisible
-        results = []
-        for i in range(len(df)):
-            results.append({
-                "id": i + 1,
-                "prediction": int(predictions[i]),
-                "probability": f"{probs[i]*100:.2f}%"
-            })
-
-        return {"results": results}
-
+        # Retourner les résultats sous forme de liste
+        return {"predictions": predictions.tolist()}
+    
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        return {"error": str(e)}
 
 # Lancer l'API localement
 if __name__ == "__main__":
