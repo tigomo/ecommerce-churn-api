@@ -43,31 +43,31 @@ class CustomerFeatures(BaseModel):
 def health() -> dict:
     return {"status": "ok"}
 
-# Prédiction single client
+# Prédiction single client (retourne probabilité)
 @app.post("/predict")
 def predict(payload: CustomerFeatures):
     try:
         df = pd.DataFrame([payload.dict()])
         proba = model.predict_proba(df)[0, 1]
-        return {"churn_probability": float(proba)}
+        return {"churn_probability": round(float(proba), 4)}
     except ValidationError as ve:
         raise HTTPException(status_code=422, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# Prédiction batch
+# Prédiction batch (retourne probabilités)
 @app.post("/predict_batch")
 def predict_batch(payloads: List[CustomerFeatures]):
     try:
         df = pd.DataFrame([p.dict() for p in payloads])
         probs = model.predict_proba(df)[:, 1].tolist()
-        return {"churn_probabilities": probs}
+        return {"churn_probabilities": [round(float(p), 4) for p in probs]}
     except ValidationError as ve:
         raise HTTPException(status_code=422, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# Prédiction via un fichier JSON
+# Prédiction via un fichier JSON (retourne probabilités)
 @app.post("/predict_json_file/")
 async def predict_from_json_file(file: UploadFile = File(...)):
     try:
@@ -80,8 +80,8 @@ async def predict_from_json_file(file: UploadFile = File(...)):
         if df.empty:
             raise HTTPException(status_code=400, detail="Le fichier JSON est vide ou mal formaté.")
 
-        predictions = model.predict(df)
-        return {"predictions": predictions.tolist()}
+        probs = model.predict_proba(df)[:, 1]
+        return {"churn_probabilities": [round(float(p), 4) for p in probs]}
     
     except Exception as e:
         return {"error": str(e)}
