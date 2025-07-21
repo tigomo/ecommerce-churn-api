@@ -131,67 +131,31 @@ def chat_insights(client_id: str):
     }
 
 
-# Prédiction single client
+# Prédiction single client (retourne probabilité)
 @app.post("/predict")
-def predict(customer: CustomerFeatures):
+def predict(payload: CustomerFeatures):
     try:
-        input_df = pd.DataFrame([customer.dict()])
-        prediction_proba = model.predict_proba(input_df)[0]
-        churn_probability = round(float(prediction_proba[1]), 4)
-        confidence_score = round(float(max(prediction_proba)) * 100, 2)  # en pourcentage
-
-        return {
-            "churn_probability": churn_probability,
-            "confidence_score": f"{confidence_score} %"
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.post("/predict_batch")
-def predict_batch(payloads: List[CustomerFeatures]):
-    try:
-        df = pd.DataFrame([p.dict() for p in payloads])
-        probs = model.predict_proba(df)[:, 1]
-        
-        results = [
-            {
-                "churn_probability": round(p, 4),
-                "confidence_score": f"{round(p * 100, 2)} %"
-            }
-            for p in probs
-        ]
-        return results
-        
+        df = pd.DataFrame([payload.dict()])
+        proba = model.predict_proba(df)[0, 1]
+        return {"churn_probability": round(float(proba), 4)}
     except ValidationError as ve:
         raise HTTPException(status_code=422, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
-# Prédiction batch test 
-@app.post("/predict_batch_test")
-def predict_batch(customers: List[CustomerFeatures]):
+# Prédiction batch (retourne probabilités)
+@app.post("/predict_batch")
+def predict_batch(payloads: List[CustomerFeatures]):
     try:
-        results = []
-
-        for customer in customers:
-            input_df = pd.DataFrame([customer.dict()])
-            prediction_proba = model.predict_proba(input_df)[0]
-            churn_probability = round(float(prediction_proba[1]), 4)
-            confidence_score = round(float(max(prediction_proba)) * 100, 2)
-
-            results.append({
-                "Customer_ID": customer.Customer_ID,
-                "churn_probability": churn_probability,
-                "confidence_score": f"{confidence_score} %"
-            })
-
-        return {"predictions": results}
+        df = pd.DataFrame([p.dict() for p in payloads])
+        probs = model.predict_proba(df)[:, 1].tolist()
+        return {"churn_probabilities": [round(float(p), 4) for p in probs]}
+    except ValidationError as ve:
+        raise HTTPException(status_code=422, detail=str(ve))
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=400, detail=str(e))
 
-
-# Prédiction via un fichier JSON
+# Prédiction via un fichier JSON (retourne probabilités)
 @app.post("/predict_json_file/")
 async def predict_from_json_file(file: UploadFile = File(...)):
     try:
@@ -205,13 +169,7 @@ async def predict_from_json_file(file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="Le fichier JSON est vide ou mal formaté.")
 
         probs = model.predict_proba(df)[:, 1]
-        churn_probs = [round(p, 4) for p in probs]
-        confidences = [f"{round(p * 100, 2)} %" for p in probs]
-
-        return {
-            "churn_probabilities": churn_probs,
-            "confidence_scores": confidences
-        }
+        return {"churn_probabilities": [round(float(p), 4) for p in probs]}
     
     except Exception as e:
         return {"error": str(e)}
