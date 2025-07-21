@@ -45,36 +45,43 @@ def health() -> dict:
 
 # Prédiction single client
 @app.post("/predict")
-def predict(payload: CustomerFeatures):
+def predict(customer: CustomerFeatures):
     try:
-        df = pd.DataFrame([payload.dict()])
-        proba = model.predict_proba(df)[0, 1]
-        confidence = round(proba * 100, 2)
+        input_df = pd.DataFrame([customer.dict()])
+        prediction_proba = model.predict_proba(input_df)[0]
+        churn_probability = round(float(prediction_proba[1]), 4)
+        confidence_score = round(float(max(prediction_proba)) * 100, 2)  # en pourcentage
+
         return {
-            "churn_probability": round(proba, 4),
-            "confidence_score": f"{confidence} %"
+            "churn_probability": churn_probability,
+            "confidence_score": f"{confidence_score} %"
         }
-    except ValidationError as ve:
-        raise HTTPException(status_code=422, detail=str(ve))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return {"error": str(e)}
 
 # Prédiction batch
 @app.post("/predict_batch")
-def predict_batch(payloads: List[CustomerFeatures]):
+def predict_batch(file: UploadFile = File(...)):
     try:
-        df = pd.DataFrame([p.dict() for p in payloads])
-        probs = model.predict_proba(df)[:, 1]
-        churn_probs = [round(p, 4) for p in probs]
-        confidences = [f"{round(p * 100, 2)} %" for p in probs]
-        return {
-            "churn_probabilities": churn_probs,
-            "confidence_scores": confidences
-        }
-    except ValidationError as ve:
-        raise HTTPException(status_code=422, detail=str(ve))
+        content = file.file.read()
+        df = pd.read_json(io.BytesIO(content))
+
+        predictions_proba = model.predict_proba(df)
+        predictions = []
+
+        for proba in predictions_proba:
+            churn_proba = round(float(proba[1]), 4)
+            confidence = round(float(max(proba)) * 100, 2)
+
+            predictions.append({
+                "churn_probability": churn_proba,
+                "confidence_score": f"{confidence} %"
+            })
+
+        return {"predictions": predictions}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return {"error": str(e)}
+
 
 # Prédiction via un fichier JSON
 @app.post("/predict_json_file/")
