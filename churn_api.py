@@ -43,6 +43,37 @@ class CustomerFeatures(BaseModel):
 def health() -> dict:
     return {"status": "ok"}
 
+@app.get("/user_dashboard/{client_id}")
+def user_dashboard(client_id: str):
+    # Récupération des données + stats personnalisées
+    return {...}
+
+@app.get("/recommend_products/{client_id}")
+def recommend_products(client_id: str):
+    # Logique de recommandation
+    return {...}
+
+@app.get("/churn_risk_insights/{client_id}")
+def churn_risk_insights(client_id: str):
+    # Interprétation de la prédiction
+    return {...}
+
+@app.get("/churn_trends")
+def churn_trends():
+    # Statistiques globales
+    return {...}
+
+@app.get("/similar_customers/{client_id}")
+def similar_customers(client_id: str):
+    # Recherche des clients similaires
+    return {...}
+
+@app.get("/suggest_next_action/{client_id}")
+def suggest_next_action(client_id: str):
+    # Prochaine action recommandée
+    return {...}
+
+
 # Prédiction single client
 @app.post("/predict")
 def predict(customer: CustomerFeatures):
