@@ -73,6 +73,57 @@ def suggest_next_action(client_id: str):
     # Prochaine action recommandée
     return {...}
 
+@app.get("/feature-importance")
+def feature_importance():
+    return {"message": "Affiche les variables les plus importantes du modèle"}
+
+@app.get("/monitoring")
+def monitoring():
+    return {"message": "État du modèle, du serveur et statistiques de prédiction"}
+
+@app.get("/explain_prediction/{client_id}")
+def explain_prediction(client_id: str):
+    return {
+        "client_id": client_id,
+        "explanation": {
+            "Tenure": "+0.3",
+            "SupportTickets": "-0.2",
+            "ListeningTime": "+0.1"
+        }
+    }
+
+@app.get("/suggest_next_action/{client_id}")
+def suggest_next_action(client_id: str):
+    return {
+        "client_id": client_id,
+        "action": "Offrir un mois gratuit ou un bon de réduction"
+    }
+
+@app.get("/recommend_products/{client_id}")
+def recommend_products(client_id: str):
+    return {
+        "client_id": client_id,
+        "products": ["Livre Audio A", "Livre Audio B", "Abonnement Premium"]
+    }
+
+@app.get("/segment_clients")
+def segment_clients():
+    return {
+        "segments": {
+            "A": "Clients fidèles",
+            "B": "Clients à risque",
+            "C": "Nouveaux clients"
+        }
+    }
+
+@app.get("/similar_customers/{client_id}")
+def similar_customers(client_id: str):
+    return {
+        "client_id": client_id,
+        "similar_customers": ["CL_103", "CL_209", "CL_017"]
+    }
+
+
 
 # Prédiction single client
 @app.post("/predict")
