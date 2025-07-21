@@ -147,26 +147,46 @@ def predict(customer: CustomerFeatures):
     except Exception as e:
         return {"error": str(e)}
 
-# Prédiction batch
 @app.post("/predict_batch")
-def predict_batch(file: UploadFile = File(...)):
+def predict_batch(payloads: List[CustomerFeatures]):
     try:
-        content = file.file.read()
-        df = pd.read_json(io.BytesIO(content))
+        df = pd.DataFrame([p.dict() for p in payloads])
+        probs = model.predict_proba(df)[:, 1]
+        
+        results = [
+            {
+                "churn_probability": round(p, 4),
+                "confidence_score": f"{round(p * 100, 2)} %"
+            }
+            for p in probs
+        ]
+        return results
+        
+    except ValidationError as ve:
+        raise HTTPException(status_code=422, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-        predictions_proba = model.predict_proba(df)
-        predictions = []
 
-        for proba in predictions_proba:
-            churn_proba = round(float(proba[1]), 4)
-            confidence = round(float(max(proba)) * 100, 2)
+# Prédiction batch test 
+@app.post("/predict_batch_test")
+def predict_batch(customers: List[CustomerFeatures]):
+    try:
+        results = []
 
-            predictions.append({
-                "churn_probability": churn_proba,
-                "confidence_score": f"{confidence} %"
+        for customer in customers:
+            input_df = pd.DataFrame([customer.dict()])
+            prediction_proba = model.predict_proba(input_df)[0]
+            churn_probability = round(float(prediction_proba[1]), 4)
+            confidence_score = round(float(max(prediction_proba)) * 100, 2)
+
+            results.append({
+                "Customer_ID": customer.Customer_ID,
+                "churn_probability": churn_probability,
+                "confidence_score": f"{confidence_score} %"
             })
 
-        return {"predictions": predictions}
+        return {"predictions": results}
     except Exception as e:
         return {"error": str(e)}
 
