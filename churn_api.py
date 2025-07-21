@@ -123,6 +123,12 @@ def similar_customers(client_id: str):
         "similar_customers": ["CL_103", "CL_209", "CL_017"]
     }
 
+@app.get("/chat-insights/{client_id}")
+def chat_insights(client_id: str):
+    return {
+        "client_id": client_id,
+        "chat_response": "Ce client présente un risque de churn élevé. Il est recommandé d'intervenir rapidement avec une offre ciblée."
+    }
 
 
 # Prédiction single client
