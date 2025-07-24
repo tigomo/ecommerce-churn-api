@@ -2,6 +2,10 @@ from typing import List, Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field, ValidationError
 from fastapi.responses import JSONResponse
+
+from database import engine
+from models import Prediction, Base
+
 import pandas as pd
 import joblib
 import io
@@ -49,7 +53,16 @@ def health() -> dict:
 # -----------------------------
 @app.get("/user_dashboard/{client_id}")
 def user_dashboard(client_id: str):
-    return {"message": f"Dashboard pour le client {client_id}"}
+    return {"message": f"Dashboard pour le client {client_id}"
+
+@app.get("/init-db")
+def init_db():
+    try:
+        Base.metadata.create_all(bind=engine)
+        return {"message": "✅ Base de données initialisée avec succès"}
+    except Exception as e:
+        return {"error": str(e)}
+
 
 @app.get("/recommend_products/{client_id}")
 def recommend_products(client_id: str):
