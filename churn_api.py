@@ -3,8 +3,9 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field, ValidationError
 from fastapi.responses import JSONResponse
 
-from database import engine
-from models import Prediction, Base
+from database import SessionLocal
+from models import Prediction
+
 
 import pandas as pd
 import joblib
@@ -129,6 +130,36 @@ def predict(payload: CustomerFeatures):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+# Prédiction single client plus database 
+@app.post("/predict_db")
+def predict(payload: CustomerFeatures):
+    try:
+        df = pd.DataFrame([payload.dict(exclude={"client_id"})])
+        proba = model.predict_proba(df)[0, 1]
+        confidence = round(max(proba, 1 - proba) * 100, 2)
+
+        db = SessionLocal()
+        prediction = Prediction(
+            client_id=payload.client_id or "unknown",
+            churn_probability=round(float(proba), 4),
+            confidence_score=confidence
+        )
+        db.add(prediction)
+        db.commit()
+        db.close()
+
+        return {
+            "client_id": payload.client_id or "unknown",
+            "churn_probability": round(float(proba), 4),
+            "confidence_score": f"{confidence} %"
+        }
+
+    except ValidationError as ve:
+        raise HTTPException(status_code=422, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 # Prédiction batch
 @app.post("/predict_batch")
 def predict_batch(payloads: List[CustomerFeatures]):
@@ -148,6 +179,42 @@ def predict_batch(payloads: List[CustomerFeatures]):
         raise HTTPException(status_code=422, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+        
+# Prédiction batch plus database
+@app.post("/predict_batch_db")
+def predict_batch(payloads: List[CustomerFeatures]):
+    try:
+        db = SessionLocal()
+        results = []
+
+        for idx, p in enumerate(payloads):
+            df = pd.DataFrame([p.dict(exclude={"client_id"})])
+            proba = model.predict_proba(df)[0, 1]
+            confidence = round(max(proba, 1 - proba) * 100, 2)
+
+            client_id = p.client_id or f"CL_{idx+1}"
+            prediction = Prediction(
+                client_id=client_id,
+                churn_probability=round(float(proba), 4),
+                confidence_score=confidence
+            )
+            db.add(prediction)
+            results.append({
+                "client_id": client_id,
+                "churn_probability": round(float(proba), 4),
+                "confidence_score": f"{confidence} %"
+            })
+
+        db.commit()
+        db.close()
+
+        return {"predictions": results}
+
+    except ValidationError as ve:
+        raise HTTPException(status_code=422, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 # Prédiction via fichier JSON
 @app.post("/predict_json_file/")
@@ -178,6 +245,50 @@ async def predict_from_json_file(file: UploadFile = File(...)):
 
     except Exception as e:
         return {"error": str(e)}
+
+# Prédiction via fichier JSON
+@app.post("/predict_json_file_db/")
+async def predict_from_json_file(file: UploadFile = File(...)):
+    try:
+        if not file.filename.endswith(".json"):
+            raise HTTPException(status_code=400, detail="Veuillez envoyer un fichier .json")
+
+        contents = await file.read()
+        df = pd.read_json(io.BytesIO(contents))
+
+        if df.empty:
+            raise HTTPException(status_code=400, detail="Le fichier JSON est vide ou mal formaté.")
+
+        db = SessionLocal()
+        predictions = []
+
+        for i, row in df.iterrows():
+            row_input = row.drop("client_id") if "client_id" in row else row
+            input_df = pd.DataFrame([row_input])
+            proba = model.predict_proba(input_df)[0, 1]
+            confidence = round(max(proba, 1 - proba) * 100, 2)
+
+            client_id = row.get("client_id", f"CL_{i+1}")
+            prediction = Prediction(
+                client_id=client_id,
+                churn_probability=round(float(proba), 4),
+                confidence_score=confidence
+            )
+            db.add(prediction)
+            predictions.append({
+                "client_id": client_id,
+                "churn_probability": round(float(proba), 4),
+                "confidence_score": f"{confidence} %"
+            })
+
+        db.commit()
+        db.close()
+
+        return {"predictions": predictions}
+
+    except Exception as e:
+        return {"error": str(e)}
+
 
 # Lancer en local
 if __name__ == "__main__":
