@@ -56,15 +56,6 @@ def user_dashboard(client_id: str):
     return {"message": f"Dashboard pour le client {client_id}"}
 
 
-@app.get("/init-db")
-def init_db():
-    try:
-        Base.metadata.create_all(bind=engine)
-        return {"message": "✅ Base de données initialisée avec succès"}
-    except Exception as e:
-        return {"error": str(e)}
-
-
 @app.get("/recommend_products/{client_id}")
 def recommend_products(client_id: str):
     return {"client_id": client_id, "products": ["Livre Audio A", "Livre Audio B"]}
