@@ -8,3 +8,6 @@ nest_asyncio
 python-multipart
 jinja2
 python-multipart
+sqlalchemy
+psycopg2-binary
+
