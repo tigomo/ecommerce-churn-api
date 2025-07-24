@@ -53,7 +53,8 @@ def health() -> dict:
 # -----------------------------
 @app.get("/user_dashboard/{client_id}")
 def user_dashboard(client_id: str):
-    return {"message": f"Dashboard pour le client {client_id}"
+    return {"message": f"Dashboard pour le client {client_id}"}
+
 
 @app.get("/init-db")
 def init_db():
