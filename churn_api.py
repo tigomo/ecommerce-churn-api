@@ -137,16 +137,28 @@ def get_last_predictions(limit: int = Query(10, gt=0)):
 @app.get("/get_predictions_stats")
 def get_predictions_stats():
     db = SessionLocal()
-    total = db.query(func.count(Prediction.id)).scalar()
-    avg_churn = db.query(func.avg(Prediction.churn_probability)).scalar()
-    by_type = db.query(Prediction.prediction_type, func.count(Prediction.id)).group_by(Prediction.prediction_type).all()
-    db.close()
 
-    return {
-        "total_predictions": total,
-        "average_churn_probability": round(float(avg_churn), 4) if avg_churn is not None else None,
-        "predictions_by_type": {ptype: count for ptype, count in by_type}
-    }
+    try:
+        total = db.query(func.count(Prediction.id)).scalar()
+        avg_churn = db.query(func.avg(Prediction.churn_probability)).scalar()
+
+        # Assurez-vous que prediction_type n'est pas None avant de grouper
+        by_type = db.query(Prediction.prediction_type, func.count(Prediction.id))\
+                    .filter(Prediction.prediction_type != None)\
+                    .group_by(Prediction.prediction_type)\
+                    .all()
+
+        db.close()
+
+        return {
+            "total_predictions": total or 0,
+            "average_churn_probability": round(float(avg_churn), 4) if avg_churn is not None else 0.0,
+            "predictions_by_type": {ptype: count for ptype, count in by_type}
+        }
+    except Exception as e:
+        db.close()
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # Prédiction single client
 @app.post("/predict")
