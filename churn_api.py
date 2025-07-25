@@ -117,6 +117,37 @@ def chat_insights(client_id: str):
         "chat_response": "Ce client présente un risque de churn élevé."
     }
 
+# Nouvelle route : Prédictions d'un client spécifique
+@app.get("/get_predictions_by_client/{client_id}")
+def get_predictions_by_client(client_id: str):
+    db = SessionLocal()
+    predictions = db.query(Prediction).filter(Prediction.client_id == client_id).all()
+    db.close()
+    return predictions
+
+# Nouvelle route : N dernières prédictions
+@app.get("/get_last_predictions")
+def get_last_predictions(limit: int = Query(10, gt=0)):
+    db = SessionLocal()
+    predictions = db.query(Prediction).order_by(Prediction.timestamp.desc()).limit(limit).all()
+    db.close()
+    return predictions
+
+# Nouvelle route : Statistiques globales
+@app.get("/get_predictions_stats")
+def get_predictions_stats():
+    db = SessionLocal()
+    total = db.query(func.count(Prediction.id)).scalar()
+    avg_churn = db.query(func.avg(Prediction.churn_probability)).scalar()
+    by_type = db.query(Prediction.prediction_type, func.count(Prediction.id)).group_by(Prediction.prediction_type).all()
+    db.close()
+
+    return {
+        "total_predictions": total,
+        "average_churn_probability": round(float(avg_churn), 4) if avg_churn is not None else None,
+        "predictions_by_type": {ptype: count for ptype, count in by_type}
+    }
+
 # Prédiction single client
 @app.post("/predict")
 def predict(payload: CustomerFeatures):
