@@ -6,6 +6,10 @@ from fastapi.responses import JSONResponse
 from database import SessionLocal
 from models import Prediction
 
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from database import SessionLocal
+from models import Prediction
 
 import pandas as pd
 import joblib
@@ -296,6 +300,29 @@ async def predict_from_json_file(file: UploadFile = File(...)):
 
     except Exception as e:
         return {"error": str(e)}
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.get("/get_predictions")
+def get_predictions(db: Session = Depends(get_db)):
+    predictions = db.query(Prediction).all()
+    return [
+        {
+            "id": p.id,
+            "client_id": p.client_id,
+            "churn_probability": p.churn_probability,
+            "confidence_score": p.confidence_score,
+            "prediction_type": p.prediction_type,
+            "timestamp": p.timestamp
+        }
+        for p in predictions
+    ]
 
 
 # Lancer en local
