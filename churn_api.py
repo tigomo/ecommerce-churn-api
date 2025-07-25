@@ -131,18 +131,20 @@ def predict(payload: CustomerFeatures):
         raise HTTPException(status_code=400, detail=str(e))
 
 # Prédiction single client plus database 
-@app.post("/predict_db")
+@app.post("/predict_db") 
 def predict(payload: CustomerFeatures):
     try:
         df = pd.DataFrame([payload.dict(exclude={"client_id"})])
         proba = model.predict_proba(df)[0, 1]
+        proba = float(proba)  # Convertir en float natif Python
         confidence = round(max(proba, 1 - proba) * 100, 2)
 
         db = SessionLocal()
         prediction = Prediction(
             client_id=payload.client_id or "unknown",
-            churn_probability=round(float(proba), 4),
-            confidence_score=confidence
+            churn_probability=round(proba, 4),
+            confidence_score=f"{confidence} %",
+            prediction_type="single"  # <-- ajouté ici
         )
         db.add(prediction)
         db.commit()
@@ -150,7 +152,7 @@ def predict(payload: CustomerFeatures):
 
         return {
             "client_id": payload.client_id or "unknown",
-            "churn_probability": round(float(proba), 4),
+            "churn_probability": round(proba, 4),
             "confidence_score": f"{confidence} %"
         }
 
@@ -158,6 +160,7 @@ def predict(payload: CustomerFeatures):
         raise HTTPException(status_code=422, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 
 # Prédiction batch
@@ -190,18 +193,20 @@ def predict_batch(payloads: List[CustomerFeatures]):
         for idx, p in enumerate(payloads):
             df = pd.DataFrame([p.dict(exclude={"client_id"})])
             proba = model.predict_proba(df)[0, 1]
+            proba = float(proba)  # Convertir NumPy float en float Python
             confidence = round(max(proba, 1 - proba) * 100, 2)
 
             client_id = p.client_id or f"CL_{idx+1}"
             prediction = Prediction(
                 client_id=client_id,
-                churn_probability=round(float(proba), 4),
-                confidence_score=confidence
+                churn_probability=round(proba, 4),
+                confidence_score=f"{confidence} %",
+                prediction_type="batch"
             )
             db.add(prediction)
             results.append({
                 "client_id": client_id,
-                "churn_probability": round(float(proba), 4),
+                "churn_probability": round(proba, 4),
                 "confidence_score": f"{confidence} %"
             })
 
@@ -214,6 +219,7 @@ def predict_batch(payloads: List[CustomerFeatures]):
         raise HTTPException(status_code=422, detail=str(ve))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 
 # Prédiction via fichier JSON
@@ -266,18 +272,20 @@ async def predict_from_json_file(file: UploadFile = File(...)):
             row_input = row.drop("client_id") if "client_id" in row else row
             input_df = pd.DataFrame([row_input])
             proba = model.predict_proba(input_df)[0, 1]
+            proba = float(proba)
             confidence = round(max(proba, 1 - proba) * 100, 2)
 
             client_id = row.get("client_id", f"CL_{i+1}")
             prediction = Prediction(
                 client_id=client_id,
-                churn_probability=round(float(proba), 4),
-                confidence_score=confidence
+                churn_probability=round(proba, 4),
+                confidence_score=f"{confidence} %",
+                prediction_type="json_file"
             )
             db.add(prediction)
             predictions.append({
                 "client_id": client_id,
-                "churn_probability": round(float(proba), 4),
+                "churn_probability": round(proba, 4),
                 "confidence_score": f"{confidence} %"
             })
 
