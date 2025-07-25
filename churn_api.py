@@ -7,6 +7,7 @@ from database import SessionLocal
 from models import Prediction
 
 from sqlalchemy.orm import Session
+from sqlalchemy import func 
 from fastapi import Depends
 from database import SessionLocal
 from models import Prediction
