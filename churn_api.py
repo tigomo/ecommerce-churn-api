@@ -23,6 +23,17 @@ app = FastAPI(
     version="3.0.0"
 )
 
+# Ajout du middleware CORS pour Flutter Web
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Remplace * par l'URL de ton front si nécessaire
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Chargement du modèle pipeline
 MODEL_PATH = "churn_xgb_model.joblib"
 model = joblib.load(MODEL_PATH)
