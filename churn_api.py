@@ -6,6 +6,8 @@ from fastapi.responses import JSONResponse
 from database import SessionLocal
 from models import Prediction
 
+from sqlalchemy import text
+
 from sqlalchemy.orm import Session
 from sqlalchemy import func 
 from fastapi import Depends
@@ -72,6 +74,16 @@ def health() -> dict:
 def user_dashboard(client_id: str):
     return {"message": f"Dashboard pour le client {client_id}"}
 
+@app.get("/test_db")
+def test_db():
+    try:
+        db = SessionLocal()
+        # Exécuter une requête simple
+        result = db.execute(text("SELECT 1")).scalar()
+        db.close()
+        return {"database_connection": "ok", "result": result}
+    except Exception as e:
+        return {"database_connection": "error", "detail": str(e)}
 
 @app.get("/recommend_products/{client_id}")
 def recommend_products(client_id: str):
