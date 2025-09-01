@@ -8,4 +8,4 @@ def create_db():
     print("✅ Tables créées avec succès !")
 
 if __name__ == "__main__":
-    init_db()
+    create_db()
