@@ -1,6 +1,11 @@
-from database import Base, engine
+# create_db.py
+from database import engine, Base
 from models import Prediction
 
-print("🔧 Création des tables dans la base de données...")
-Base.metadata.create_all(bind=engine)
-print("✅ Tables créées avec succès.")
+def create_db():
+    print("🚀 Initialisation de la base de données...")
+    Base.metadata.create_all(bind=engine)
+    print("✅ Tables créées avec succès !")
+
+if __name__ == "__main__":
+    init_db()
