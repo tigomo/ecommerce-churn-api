@@ -6,7 +6,7 @@ import os
 
 # URL de connexion à PostgreSQL (Render) à remplacer par la tienne
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:2xsmwFHFEonXi4piIJHc@database-1.cl2gcwskyx77.eu-north-1.rds.amazonaws.com/ecommerce")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:Mau2passe@ecommercechurns.cl2gcwskyx77.eu-north-1.rds.amazonaws.com/ecommerce")
+#DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:Mau2passe@ecommercechurns.cl2gcwskyx77.eu-north-1.rds.amazonaws.com/ecommerce")
 
 # Création du moteur SQLAlchemy
 engine = create_engine(DATABASE_URL)
